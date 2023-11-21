@@ -351,7 +351,7 @@ func buildResourceDataFromIDPSAMLv2(data *schema.ResourceData, res fusionauth.SA
 		return diag.Errorf("idpSAMLv2.enabled: %s", err.Error())
 	}
 	if err := data.Set("idp_initiated_enabled", res.Enabled); err != nil {
-		return diag.Errorf("idpSAMLv2.enabled: %s", err.Error())
+		return diag.Errorf("idpSAMLv2.idp_initiated_enabled: %s", err.Error())
 	}
 	if err := data.Set("idp_endpoint", res.IdpEndpoint); err != nil {
 		return diag.Errorf("idpSAMLv2.idp_endpoint: %s", err.Error())
