@@ -114,6 +114,17 @@ func resourceIDPSAMLv2() *schema.Resource {
 				Optional:    true,
 				Description: "The SAML v2 login page of the identity provider.",
 			},
+			"idp_initiated_enabled": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Determines idp_initiated login for this provider is enabled.",
+			},
+			"issuer": {
+				Type:        schema.TypeString,
+				Required:    false,
+				Description: "The EntityId (unique identifier) of the SAML v2 identity provider. This value should be provided to you. Prior to 1.27.1 this value was required to be a URL.",
+			},
 			"key_id": {
 				Type:         schema.TypeString,
 				Required:     true,
@@ -151,11 +162,7 @@ func resourceIDPSAMLv2() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "When using FusionAuth as a SAML IdP, FusionAuth will now accept urn:oasis:names:tc:SAML:2.0:nameid-format:persistent in addition to urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress. This should allow FusionAuth to work with SAML v2 service providers that only support the persistent NameID format.",
-				ValidateFunc: validation.StringInSlice([]string{
-					"urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
-					"urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
-				}, false),
+				Description: "The Name Id is used to facilitate communication about a user between a Service Provider (SP) and Identity Provider (IdP). The SP can specify the preferred format in the AuthN request regarding a user. The identity Provider will attempt to honor this format in the AuthN response. When this parameter is omitted a default value of urn:oasis:names:tc:SAML:2.0:nameid-format:persistent will be used."
 			},
 			"post_request": {
 				Type:        schema.TypeBool,
@@ -304,8 +311,12 @@ func buildIDPSAMLv2(data *schema.ResourceData) SAMLIdentityProviderBody {
 			KeyId:             data.Get("key_id").(string),
 			UseNameIdForEmail: data.Get("use_name_for_email").(bool),
 		},
-		Domains:             handleStringSlice("domains", data),
-		IdpEndpoint:         data.Get("idp_endpoint").(string),
+		Domains:     handleStringSlice("domains", data),
+		IdpEndpoint: data.Get("idp_endpoint").(string),
+		IdpInitiatedConfiguration: fusionauth.SAMLv2IdpInitiatedConfiguration{
+			Enableable: buildEnableable("idp_initiated_enabled", data),
+			Issuer:     data.Get("issuer").(string),
+		},
 		NameIdFormat:        data.Get("name_id_format").(string),
 		PostRequest:         data.Get("post_request").(bool),
 		RequestSigningKeyId: data.Get("request_signing_key").(string),
@@ -337,9 +348,15 @@ func buildResourceDataFromIDPSAMLv2(data *schema.ResourceData, res fusionauth.SA
 	}
 	if err := data.Set("unique_id_claim", res.UniqueIdClaim); err != nil {
 		return diag.Errorf("idpSAMLv2.unique_id_claim: %s", err.Error())
+  }
+	if err := data.Set("issuer", res.Issuer); err != nil {
+		return diag.Errorf("idpSAMLv2.issuer: %s", err.Error())
 	}
 	if err := data.Set("enabled", res.Enabled); err != nil {
 		return diag.Errorf("idpSAMLv2.enabled: %s", err.Error())
+	}
+	if err := data.Set("idp_initiated_enabled", res.Enabled); err != nil {
+		return diag.Errorf("idpSAMLv2.idp_initiated_enabled: %s", err.Error())
 	}
 	if err := data.Set("idp_endpoint", res.IdpEndpoint); err != nil {
 		return diag.Errorf("idpSAMLv2.idp_endpoint: %s", err.Error())
