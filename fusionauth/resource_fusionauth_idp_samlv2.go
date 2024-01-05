@@ -109,6 +109,17 @@ func resourceIDPSAMLv2() *schema.Resource {
 				Optional:    true,
 				Description: "The SAML v2 login page of the identity provider.",
 			},
+			"idp_initiated_enabled": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Determines idp_initiated login for this provider is enabled.",
+			},
+			"issuer": {
+				Type:        schema.TypeString,
+				Required:    false,
+				Description: "The EntityId (unique identifier) of the SAML v2 identity provider. This value should be provided to you. Prior to 1.27.1 this value was required to be a URL.",
+			},
 			"key_id": {
 				Type:         schema.TypeString,
 				Required:     true,
@@ -294,8 +305,12 @@ func buildIDPSAMLv2(data *schema.ResourceData) SAMLIdentityProviderBody {
 			KeyId:             data.Get("key_id").(string),
 			UseNameIdForEmail: data.Get("use_name_for_email").(bool),
 		},
-		Domains:             handleStringSlice("domains", data),
-		IdpEndpoint:         data.Get("idp_endpoint").(string),
+		Domains:     handleStringSlice("domains", data),
+		IdpEndpoint: data.Get("idp_endpoint").(string),
+		IdpInitiatedConfiguration: fusionauth.SAMLv2IdpInitiatedConfiguration{
+			Enableable: buildEnableable("idp_initiated_enabled", data),
+			Issuer:     data.Get("issuer").(string),
+		},
 		NameIdFormat:        data.Get("name_id_format").(string),
 		PostRequest:         data.Get("post_request").(bool),
 		RequestSigningKeyId: data.Get("request_signing_key").(string),
@@ -325,8 +340,14 @@ func buildResourceDataFromIDPSAMLv2(data *schema.ResourceData, res fusionauth.SA
 	if err := data.Set("email_claim", res.EmailClaim); err != nil {
 		return diag.Errorf("idpSAMLv2.email_claim: %s", err.Error())
 	}
+	if err := data.Set("issuer", res.Issuer); err != nil {
+		return diag.Errorf("idpSAMLv2.issuer: %s", err.Error())
+	}
 	if err := data.Set("enabled", res.Enabled); err != nil {
 		return diag.Errorf("idpSAMLv2.enabled: %s", err.Error())
+	}
+	if err := data.Set("idp_initiated_enabled", res.Enabled); err != nil {
+		return diag.Errorf("idpSAMLv2.idp_initiated_enabled: %s", err.Error())
 	}
 	if err := data.Set("idp_endpoint", res.IdpEndpoint); err != nil {
 		return diag.Errorf("idpSAMLv2.idp_endpoint: %s", err.Error())
